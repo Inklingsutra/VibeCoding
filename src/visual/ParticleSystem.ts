@@ -1,15 +1,4 @@
-type Bands = {
-  bass: number;
-  lowMid: number;
-  mid: number;
-  high: number;
-};
-
-type Params = {
-  sensitivity: number;
-  flow: number;
-  particles: number;
-};
+import type { FrequencyBands, RenderParams } from "../types/visualization";
 
 type Particle = {
   x: number;
@@ -46,31 +35,28 @@ export class ParticleSystem {
     this.height = height;
   }
 
-  update(bands: Bands, params: Params, time: number) {
+  update(bands: FrequencyBands, params: RenderParams, time: number) {
   const { bass, mid } = bands;
 
   const centerX = this.width / 2;
   const centerY = this.height / 2;
 
-  for (let p of this.particles) {
+  for (const p of this.particles) {
     const dx = p.x - centerX;
     const dy = p.y - centerY;
 
     const dist = Math.sqrt(dx * dx + dy * dy) + 0.0001;
 
-    // 🌀 spiral field
     const angle =
       Math.atan2(dy, dx) +
       Math.sin(dist * 0.01 + time) * 0.6;
 
-    // ⚡ energy
     const speed =
       0.2 +
       bass * 0.008 +
       mid * 0.004 +
       params.flow * 1.5;
 
-    // 🧲 STRONGER CENTER ATTRACTOR
     const attract = 0.0015 + bass * 0.0004;
 
     p.vx +=
@@ -81,7 +67,6 @@ export class ParticleSystem {
       Math.sin(angle) * speed +
       dy * attract;
 
-    // 🧯 VELOCITY CLAMP (CRITICAL)
     const maxSpeed = 2.5;
     const v = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
 
@@ -90,10 +75,9 @@ export class ParticleSystem {
       p.vy = (p.vy / v) * maxSpeed;
     }
 
-    // ⚡ ULTRA IMPACT SHOCKWAVE
-    const shockwaves = (params as any).shockwaves || [];
+    const shockwaves = params.shockwaves ?? [];
 
-    for (let sw of shockwaves) {
+    for (const sw of shockwaves) {
       const dx = p.x - centerX;
       const dy = p.y - centerY;
       const dist = Math.sqrt(dx * dx + dy * dy) + 0.0001;
@@ -103,10 +87,7 @@ export class ParticleSystem {
       if (diff < 60) {
         const falloff = 1 - diff / 60;
 
-        // 💥 STRONG radial push
         const force = falloff * (12 + sw.strength * 0.04);
-
-        // 💫 swirl twist (important for fractal feel)
         const twist = 0.3;
 
         p.vx += (dx / dist) * force + Math.cos(dist * 0.05) * twist;
@@ -114,24 +95,6 @@ export class ParticleSystem {
       }
     }
 
-    /* ⚡ shockwave influence
-    for (let sw of (params as any).shockwaves || []) {
-      const dx = p.x - centerX;
-      const dy = p.y - centerY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      const diff = Math.abs(dist - sw.radius);
-
-      if (diff < 20) {
-        //const force = (1 - diff / 20) * 2;
-        const force = (1 - diff / 20) * (6 + sw.strength * 0.02);
-
-        p.vx += (dx / dist) * force;
-        p.vy += (dy / dist) * force;
-      }
-    }*/
-
-    // damping
     p.vx *= 0.96;
     p.vy *= 0.96;
 
@@ -143,7 +106,6 @@ export class ParticleSystem {
       p.vy += dy * 0.002;
     }
 
-    // 🌌 SOFT CONTAINMENT (NOT WRAP)
     const margin = 10;
 
     if (
@@ -152,7 +114,6 @@ export class ParticleSystem {
       p.y < -margin ||
       p.y > this.height + margin
     ) {
-      // respawn near center
       p.x = centerX + (Math.random() - 0.5) * 200;
       p.y = centerY + (Math.random() - 0.5) * 200;
       p.vx = 0;
@@ -161,13 +122,13 @@ export class ParticleSystem {
   }
 }
 
-  draw(ctx: CanvasRenderingContext2D, bands: Bands, time: number) {
+  draw(ctx: CanvasRenderingContext2D, bands: FrequencyBands, time: number) {
     const { high } = bands;
 
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
 
-    for (let p of this.particles) {
+    for (const p of this.particles) {
       const hue = (time * 50 + p.x * 0.05) % 360;
       const brightness = 60 + high * 0.5 + (bands.bass > 120 ? 20 : 0);
 

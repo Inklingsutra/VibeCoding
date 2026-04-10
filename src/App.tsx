@@ -1,25 +1,39 @@
 import { useEffect, useRef, useState } from "react";
-import { SignalProcessor } from "./engine/SignalProcessor";
+import { ControlPanel } from "./ui/ControlPanel";
+import type { VisualParams } from "./types/visualization";
+import { AudioEngine } from "./engine/AudioEngine";
 import { CanvasRenderer } from "./visual/CanvasRenderer";
-import ControlPanel from "./ui/ControlPanel";
+import "./App.css";
 
 export default function App() {
+  const defaultAudioSrc = "/sample.wav";
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-
-  const signalRef = useRef<SignalProcessor | null>(null);
+  const engineRef = useRef<AudioEngine | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
-
-  const [params, setParams] = useState({
+  const animationFrameRef = useRef<number | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const [params, setParams] = useState<VisualParams>({
     sensitivity: 1,
     flow: 1,
     particles: 1,
   });
-
   const paramsRef = useRef(params);
-  paramsRef.current = params;
-
   const [showUI, setShowUI] = useState(true);
+  const [audioSrc, setAudioSrc] = useState(defaultAudioSrc);
+  const [sourceLabel, setSourceLabel] = useState("Bundled sample");
+
+  useEffect(() => {
+    paramsRef.current = params;
+  }, [params]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current || !audioRef.current) return;
@@ -30,21 +44,26 @@ export default function App() {
     if (!rendererRef.current) {
       rendererRef.current = new CanvasRenderer(canvas);
     }
-
-    if (!signalRef.current) {
-      signalRef.current = new SignalProcessor(audio);
-    }
-
     const renderer = rendererRef.current;
-    const signal = signalRef.current;
 
-    let running = false;
+    let cancelled = false;
+
+    const stopLoop = () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
 
     const loop = () => {
-      if (!renderer || !signal) return;
+      const engine = engineRef.current;
 
-      const bands = signal.getFrequencyBands();
+      if (!renderer || !engine || cancelled || audio.paused || audio.ended) {
+        stopLoop();
+        return;
+      }
 
+      const bands = engine.getFrequencyBands();
       const adjusted = {
         bass: bands.bass * paramsRef.current.sensitivity,
         lowMid: bands.lowMid * paramsRef.current.sensitivity,
@@ -53,51 +72,113 @@ export default function App() {
       };
 
       renderer.render(adjusted, paramsRef.current);
-
-      requestAnimationFrame(loop);
+      animationFrameRef.current = requestAnimationFrame(loop);
     };
 
     const handlePlay = async () => {
-      console.log("PLAY triggered");
+      if (!engineRef.current) {
+        engineRef.current = new AudioEngine();
+        engineRef.current.attachMediaElement(audio);
+      }
 
-      await signal.audioCtx?.resume?.(); // ensure audio context active
+      await engineRef.current.resume();
 
-      if (!running) {
-        running = true;
+      if (animationFrameRef.current === null) {
         loop();
       }
     };
 
+    const handlePause = () => {
+      stopLoop();
+      void engineRef.current?.suspend();
+    };
+
     audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handlePause);
 
     return () => {
+      cancelled = true;
       audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handlePause);
+      stopLoop();
+      renderer.dispose();
+      engineRef.current?.dispose();
+      rendererRef.current = null;
+      engineRef.current = null;
     };
   }, []);
 
+  const updateAudioSource = (nextSource: string, nextLabel: string) => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    setAudioSrc(nextSource);
+    setSourceLabel(nextLabel);
+  };
+
+  const handleFileSelect = (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const nextUrl = URL.createObjectURL(file);
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+
+    objectUrlRef.current = nextUrl;
+    updateAudioSource(nextUrl, file.name);
+  };
+
+  const handleUseSample = () => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    updateAudioSource(defaultAudioSrc, "Bundled sample");
+  };
+
   return (
-    <>
+    <main className="app-shell">
       <canvas ref={canvasRef} />
+
+      <section className="app-hud">
+        <div className="app-brand">
+          <p className="app-kicker">Audio Reactive Playground</p>
+          <h1>Audio Visual Engine</h1>
+          <p className="app-summary">
+            Play the sample track and shape the field with sensitivity, flow,
+            and particle density controls.
+          </p>
+        </div>
+
+        <div className="app-meta">
+          <span>Canvas particles</span>
+          <span>Web Audio analysis</span>
+          <span>Live controls</span>
+        </div>
+      </section>
 
       <ControlPanel
         params={params}
         setParams={setParams}
         audioRef={audioRef}
+        audioSrc={audioSrc}
+        sourceLabel={sourceLabel}
+        onFileSelect={handleFileSelect}
+        onUseSample={handleUseSample}
         visible={showUI}
-        toggle={() => setShowUI(!showUI)}
+        toggle={() => setShowUI((current) => !current)}
       />
 
-      <div
-        style={{
-          position: "fixed",
-          bottom: 10,
-          right: 10,
-          color: "white",
-          opacity: 0.5,
-        }}
-      >
-        © inklingsutra 2026
-      </div>
-    </>
+      <p className="app-credit">© inklingsutra 2026</p>
+    </main>
   );
 }

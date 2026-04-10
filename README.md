@@ -1,73 +1,59 @@
-# React + TypeScript + Vite
+# Audio Visual Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Audio Visual Engine is a small browser-based playground for audio-reactive motion graphics. It uses the Web Audio API to analyze a playing media element and feeds those frequency bands into a canvas particle renderer.
 
-Currently, two official plugins are available:
+## Current Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Sample-track playback through the built-in audio player
+- Local audio upload for testing the visualization against your own files
+- Real-time frequency band analysis for bass, low-mid, mid, and high ranges
+- Canvas-based particle field with shockwave reactions on kick peaks
+- Live controls for sensitivity, flow, and particle density response
+- Responsive overlay UI for desktop and mobile screens
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- TypeScript
+- Vite
+- Web Audio API
+- Canvas 2D
 
-## Expanding the ESLint configuration
+## Local Development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open the local Vite URL, press play in the control panel, and the visualization will start sampling from `public/sample.wav`. You can also upload a local audio file from the playback section and analyze that instead.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run preview
 ```
+
+## Project Structure
+
+```text
+src/
+  engine/        Audio analysis lifecycle
+  ui/            Playback and control surface
+  visual/        Canvas renderer and particles
+  types/         Shared visualization contracts
+```
+
+## Notes
+
+- Audio initialization is lazy and starts on user playback to align with browser autoplay policies.
+- The default experience starts from a bundled sample, but the UI also supports local audio upload for quick experimentation.
+
+## Recommended Next Steps
+
+- Add microphone input as an alternate live source
+- Split renderer behaviors into selectable visual modes
+- Add focused tests around audio band calculation and playback lifecycle
