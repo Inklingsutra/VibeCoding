@@ -17,6 +17,7 @@ export default function App() {
     sensitivity: 1,
     flow: 1,
     particles: 1,
+    mode: "nebula",
   });
   const paramsRef = useRef(params);
   const [showUI, setShowUI] = useState(true);
@@ -155,7 +156,7 @@ export default function App() {
           <h1>Audio Visual Engine</h1>
           <p className="app-summary">
             Play the sample track and shape the field with sensitivity, flow,
-            and particle density controls.
+            particle density, and visual mode controls.
           </p>
         </div>
 

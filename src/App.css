@@ -171,6 +171,26 @@
   cursor: pointer;
 }
 
+.control-mode {
+  display: grid;
+  gap: 8px;
+}
+
+.control-mode__select {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--headline);
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.control-mode__description {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
 .control-slider {
   display: flex;
   align-items: baseline;

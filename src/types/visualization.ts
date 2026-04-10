@@ -1,3 +1,5 @@
+export type VisualMode = "nebula" | "prism" | "pulse";
+
 export type FrequencyBands = {
   bass: number;
   lowMid: number;
@@ -9,6 +11,7 @@ export type VisualParams = {
   sensitivity: number;
   flow: number;
   particles: number;
+  mode: VisualMode;
 };
 
 export type Shockwave = {

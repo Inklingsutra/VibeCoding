@@ -1,5 +1,10 @@
 import { ParticleSystem } from "./ParticleSystem";
-import type { FrequencyBands, RenderParams, Shockwave } from "../types/visualization";
+import type {
+  FrequencyBands,
+  RenderParams,
+  Shockwave,
+  VisualMode,
+} from "../types/visualization";
 
 export class CanvasRenderer {
   private ctx: CanvasRenderingContext2D;
@@ -38,7 +43,6 @@ export class CanvasRenderer {
   }
 
   render(bands: FrequencyBands, params: RenderParams) {
-
     const isKick = bands.bass > this.lastBass * 1.4 && bands.bass > 120;
 
     if (isKick) {
@@ -51,27 +55,48 @@ export class CanvasRenderer {
     this.lastBass = bands.bass;
     const { bass, mid } = bands;
     this.time += 0.02 + bass * 0.001;
+    const hue = (this.time * 40 + mid * 0.2) % 360;
+
+    this.drawBackdrop(bands, params.mode, hue, isKick);
+    this.drawShockwaves();
+    this.particles.update(bands, { ...params, shockwaves: this.shockwaves }, this.time);
+    this.particles.draw(this.ctx, bands, this.time);
+  }
+
+  private drawBackdrop(
+    bands: FrequencyBands,
+    mode: VisualMode,
+    hue: number,
+    isKick: boolean
+  ) {
+    switch (mode) {
+      case "prism":
+        this.drawPrismBackdrop(bands, hue, isKick);
+        break;
+      case "pulse":
+        this.drawPulseBackdrop(bands, hue, isKick);
+        break;
+      case "nebula":
+      default:
+        this.drawNebulaBackdrop(bands, hue, isKick);
+        break;
+    }
+  }
+
+  private drawNebulaBackdrop(
+    bands: FrequencyBands,
+    hue: number,
+    isKick: boolean
+  ) {
+    const { bass, mid } = bands;
     const cx = this.width / 2;
     const cy = this.height / 2;
     const radius =
       this.width * (0.6 + Math.sin(this.time) * 0.05 + bass * 0.002);
-    const gradient = this.ctx.createRadialGradient(
-      cx,
-      cy,
-      0,
-      cx,
-      cy,
-      radius
-    );
-    const hue = (this.time * 40 + mid * 0.2) % 360;
-    gradient.addColorStop(
-      0,
-      `hsla(${hue}, 70%, ${20 + bass * 0.2}%, 0.25)`
-    );
-    gradient.addColorStop(
-      1,
-      `hsla(${hue + 60}, 60%, 5%, 0.4)`
-    );
+    const gradient = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+
+    gradient.addColorStop(0, `hsla(${hue}, 70%, ${20 + bass * 0.2}%, 0.25)`);
+    gradient.addColorStop(1, `hsla(${hue + 60}, 60%, 5%, 0.4)`);
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, this.width, this.height);
 
@@ -101,9 +126,77 @@ export class CanvasRenderer {
     }
 
     this.ctx.restore();
-    this.drawShockwaves();
-    this.particles.update(bands, { ...params, shockwaves: this.shockwaves }, this.time);
-    this.particles.draw(this.ctx, bands, this.time);
+  }
+
+  private drawPrismBackdrop(
+    bands: FrequencyBands,
+    hue: number,
+    isKick: boolean
+  ) {
+    const { bass, high } = bands;
+    this.ctx.fillStyle = `hsla(${(hue + 220) % 360}, 45%, 5%, 0.34)`;
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    this.ctx.save();
+    this.ctx.globalCompositeOperation = "screen";
+
+    const beamCount = 18;
+    for (let i = 0; i < beamCount; i++) {
+      const progress = i / beamCount;
+      const angle = this.time * 0.8 + progress * Math.PI * 2;
+      const beamHue = (hue + progress * 120 + high * 0.12) % 360;
+      const beamLength = this.width * (0.24 + bass * 0.002 + progress * 0.12);
+
+      this.ctx.strokeStyle = `hsla(${beamHue}, 95%, 70%, 0.2)`;
+      this.ctx.lineWidth = 1.5 + progress * 4;
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.width / 2, this.height / 2);
+      this.ctx.lineTo(
+        this.width / 2 + Math.cos(angle) * beamLength,
+        this.height / 2 + Math.sin(angle) * beamLength
+      );
+      this.ctx.stroke();
+    }
+
+    this.ctx.restore();
+
+    if (isKick) {
+      this.ctx.fillStyle = "rgba(255,255,255,0.12)";
+      this.ctx.fillRect(0, 0, this.width, this.height);
+    }
+  }
+
+  private drawPulseBackdrop(
+    bands: FrequencyBands,
+    hue: number,
+    isKick: boolean
+  ) {
+    const { bass, lowMid } = bands;
+    this.ctx.fillStyle = `hsla(${(hue + 300) % 360}, 40%, 4%, 0.42)`;
+    this.ctx.fillRect(0, 0, this.width, this.height);
+
+    const cx = this.width / 2;
+    const cy = this.height / 2;
+
+    this.ctx.save();
+    this.ctx.globalCompositeOperation = "lighter";
+
+    for (let i = 0; i < 6; i++) {
+      const ringRadius =
+        this.width * (0.08 + i * 0.08) + Math.sin(this.time * 2 + i) * 18 + bass;
+      this.ctx.strokeStyle = `hsla(${(hue + i * 18) % 360}, 85%, 68%, ${0.08 + i * 0.03})`;
+      this.ctx.lineWidth = 2 + lowMid * 0.01 + i * 0.6;
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+
+    this.ctx.restore();
+
+    if (isKick) {
+      this.ctx.fillStyle = "rgba(255,255,255,0.16)";
+      this.ctx.fillRect(0, 0, this.width, this.height);
+    }
   }
 
   private drawShockwaves() {
