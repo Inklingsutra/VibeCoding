@@ -29,6 +29,15 @@ export default function App() {
   }, [params]);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    audio.load();
+  }, [audioSrc]);
+
+  useEffect(() => {
     return () => {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
@@ -66,10 +75,10 @@ export default function App() {
 
       const bands = engine.getFrequencyBands();
       const adjusted = {
+        subKick: bands.subKick * paramsRef.current.sensitivity,
         bass: bands.bass * paramsRef.current.sensitivity,
-        lowMid: bands.lowMid * paramsRef.current.sensitivity,
-        mid: bands.mid * paramsRef.current.sensitivity,
-        high: bands.high * paramsRef.current.sensitivity,
+        mids: bands.mids * paramsRef.current.sensitivity,
+        highs: bands.highs * paramsRef.current.sensitivity,
       };
 
       renderer.render(adjusted, paramsRef.current);

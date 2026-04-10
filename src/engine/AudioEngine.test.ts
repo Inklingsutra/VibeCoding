@@ -8,10 +8,11 @@ class MockAnalyser {
   connect = vi.fn();
   disconnect = vi.fn();
   getByteFrequencyData = vi.fn((array: Uint8Array) => {
-    array.fill(10, 0, 10);
-    array.fill(20, 10, 30);
-    array.fill(30, 30, 80);
-    array.fill(40, 80, 256);
+    array.fill(0);
+    array.fill(10, 0, 3);
+    array.fill(20, 3, 7);
+    array.fill(30, 7, 47);
+    array.fill(40, 47, 233);
   });
 }
 
@@ -20,11 +21,15 @@ class MockSource {
   disconnect = vi.fn();
 }
 
+class MockStreamSource extends MockSource {}
+
 class MockAudioContext {
   state: AudioContextState = "suspended";
+  sampleRate = 22050;
   destination = {};
   analyser = new MockAnalyser();
   source = new MockSource();
+  streamSource = new MockStreamSource();
   resume = vi.fn(async () => {
     this.state = "running";
   });
@@ -37,6 +42,9 @@ class MockAudioContext {
   createAnalyser = vi.fn(() => this.analyser as unknown as AnalyserNode);
   createMediaElementSource = vi.fn(
     () => this.source as unknown as MediaElementAudioSourceNode
+  );
+  createMediaStreamSource = vi.fn(
+    () => this.streamSource as unknown as MediaStreamAudioSourceNode
   );
 }
 
@@ -54,12 +62,10 @@ describe("AudioEngine", () => {
 
     const bands = engine.getFrequencyBands();
 
-    expect(bands).toEqual({
-      bass: 10,
-      lowMid: 20,
-      mid: 30,
-      high: 40,
-    });
+    expect(bands.subKick).toBeCloseTo(10, 5);
+    expect(bands.bass).toBeCloseTo(18, 5);
+    expect(bands.mids).toBeCloseTo(29.8, 1);
+    expect(bands.highs).toBeCloseTo(39.9, 1);
   });
 
   it("resumes, suspends, and disposes the audio context lifecycle", async () => {
@@ -78,5 +84,23 @@ describe("AudioEngine", () => {
     expect(context.close).toHaveBeenCalledTimes(1);
     expect(context.analyser.disconnect).toHaveBeenCalledTimes(1);
     expect(context.source.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to captureStream when media element source creation is unavailable", () => {
+    const audio = document.createElement("audio");
+    const stream = {} as MediaStream;
+    const engine = new AudioEngine();
+    const context = (engine as unknown as { context: MockAudioContext }).context;
+
+    context.createMediaElementSource.mockImplementation(() => {
+      throw new DOMException("already connected", "InvalidStateError");
+    });
+    audio.captureStream = vi.fn(() => stream);
+
+    engine.attachMediaElement(audio);
+
+    expect(audio.captureStream).toHaveBeenCalledTimes(1);
+    expect(context.createMediaStreamSource).toHaveBeenCalledWith(stream);
+    expect(context.streamSource.connect).toHaveBeenCalledTimes(1);
   });
 });

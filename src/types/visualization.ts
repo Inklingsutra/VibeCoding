@@ -1,10 +1,10 @@
 export type VisualMode = "nebula" | "prism" | "pulse";
 
 export type FrequencyBands = {
+  subKick: number;
   bass: number;
-  lowMid: number;
-  mid: number;
-  high: number;
+  mids: number;
+  highs: number;
 };
 
 export type VisualParams = {

@@ -82,6 +82,14 @@
   backdrop-filter: blur(18px);
 }
 
+.control-toggle:focus-visible,
+.control-action:focus-visible,
+.control-mode__select:focus-visible,
+.control-slider__input:focus-visible {
+  outline: 2px solid rgba(255, 138, 61, 0.9);
+  outline-offset: 2px;
+}
+
 .control-panel {
   position: fixed;
   top: 78px;
@@ -184,6 +192,7 @@
   color: var(--headline);
   padding: 12px 14px;
   font: inherit;
+  appearance: none;
 }
 
 .control-mode__description {
@@ -212,6 +221,7 @@
 .control-slider__input {
   width: 100%;
   accent-color: var(--accent);
+  touch-action: pan-y;
 }
 
 .app-credit {
