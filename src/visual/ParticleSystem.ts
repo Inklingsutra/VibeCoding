@@ -47,17 +47,20 @@ export class ParticleSystem {
 
     const dist = Math.sqrt(dx * dx + dy * dy) + 0.0001;
 
+    const modeWave =
+      params.mode === "prism" ? 0.3 : params.mode === "pulse" ? 0.9 : 0.6;
     const angle =
       Math.atan2(dy, dx) +
-      Math.sin(dist * 0.01 + time) * 0.6;
+      Math.sin(dist * 0.01 + time) * modeWave;
 
     const speed =
       0.2 +
       bass * 0.008 +
       mid * 0.004 +
-      params.flow * 1.5;
+      params.flow * (params.mode === "pulse" ? 1.9 : 1.5);
 
-    const attract = 0.0015 + bass * 0.0004;
+    const attractBase = params.mode === "prism" ? 0.0008 : 0.0015;
+    const attract = attractBase + bass * 0.0004;
 
     p.vx +=
       Math.cos(angle) * speed +
@@ -67,7 +70,8 @@ export class ParticleSystem {
       Math.sin(angle) * speed +
       dy * attract;
 
-    const maxSpeed = 2.5;
+    const maxSpeed =
+      params.mode === "pulse" ? 3.4 : params.mode === "prism" ? 2.2 : 2.5;
     const v = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
 
     if (v > maxSpeed) {
@@ -88,15 +92,17 @@ export class ParticleSystem {
         const falloff = 1 - diff / 60;
 
         const force = falloff * (12 + sw.strength * 0.04);
-        const twist = 0.3;
+        const twist = params.mode === "prism" ? 0.08 : params.mode === "pulse" ? 0.5 : 0.3;
 
         p.vx += (dx / dist) * force + Math.cos(dist * 0.05) * twist;
         p.vy += (dy / dist) * force + Math.sin(dist * 0.05) * twist;
       }
     }
 
-    p.vx *= 0.96;
-    p.vy *= 0.96;
+    const damping =
+      params.mode === "prism" ? 0.92 : params.mode === "pulse" ? 0.94 : 0.96;
+    p.vx *= damping;
+    p.vy *= damping;
 
     p.x += p.vx;
     p.y += p.vy;
@@ -114,8 +120,9 @@ export class ParticleSystem {
       p.y < -margin ||
       p.y > this.height + margin
     ) {
-      p.x = centerX + (Math.random() - 0.5) * 200;
-      p.y = centerY + (Math.random() - 0.5) * 200;
+      const spread = params.mode === "prism" ? 320 : 200;
+      p.x = centerX + (Math.random() - 0.5) * spread;
+      p.y = centerY + (Math.random() - 0.5) * spread;
       p.vx = 0;
       p.vy = 0;
     }
@@ -131,9 +138,10 @@ export class ParticleSystem {
     for (const p of this.particles) {
       const hue = (time * 50 + p.x * 0.05) % 360;
       const brightness = 60 + high * 0.5 + (bands.bass > 120 ? 20 : 0);
+      const size = 1.5;
 
       ctx.fillStyle = `hsl(${hue}, 80%, ${brightness}%)`;
-      ctx.fillRect(p.x, p.y, 1.5, 1.5);
+      ctx.fillRect(p.x, p.y, size, size);
     }
 
     ctx.restore();
