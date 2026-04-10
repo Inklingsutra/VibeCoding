@@ -1,93 +1,133 @@
+import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from "react";
+import type { VisualParams } from "../types/visualization";
+
 type Props = {
-  params: any;
-  setParams: any;
-  audioRef: React.RefObject<HTMLAudioElement | null>;
+  params: VisualParams;
+  setParams: Dispatch<SetStateAction<VisualParams>>;
+  audioRef: RefObject<HTMLAudioElement | null>;
+  audioSrc: string;
+  sourceLabel: string;
+  onFileSelect: (file: File | null) => void;
+  onUseSample: () => void;
   visible: boolean;
   toggle: () => void;
 };
 
-export default function ControlPanel({
+export function ControlPanel({
   params,
   setParams,
   audioRef,
+  audioSrc,
+  sourceLabel,
+  onFileSelect,
+  onUseSample,
   visible,
   toggle,
 }: Props) {
+  const handleParamChange =
+    (key: keyof VisualParams) => (event: ChangeEvent<HTMLInputElement>) => {
+      const value = Number(event.target.value);
+      setParams((current) => ({ ...current, [key]: value }));
+    };
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    onFileSelect(event.target.files?.[0] ?? null);
+    event.target.value = "";
+  };
+
   return (
     <>
       <button
         onClick={toggle}
-        style={{
-          position: "fixed",
-          top: 10,
-          right: 10,
-          zIndex: 10,
-        }}
+        className="control-toggle"
       >
-        {visible ? "Hide UI" : "Show UI"}
+        {visible ? "Hide Controls" : "Show Controls"}
       </button>
 
       {visible && (
-        <div
-          style={{
-            position: "fixed",
-            top: 50,
-            right: 10,
-            background: "rgba(0,0,0,0.6)",
-            padding: 10,
-            borderRadius: 10,
-            zIndex: 10,
-          }}
-        >
-          <audio
-            ref={audioRef}
-            controls
-            src="/sample.wav"
-            onPlay={() => console.log("HTML audio playing")}
-          />
+        <aside className="control-panel" aria-label="Playback and visualization controls">
+          <div className="control-panel__section">
+            <p className="control-panel__eyebrow">Playback</p>
+            <audio
+              ref={audioRef}
+              controls
+              src={audioSrc}
+              className="control-panel__audio"
+            />
+            <div className="control-source">
+              <span className="control-source__label">Current source</span>
+              <strong className="control-source__value">{sourceLabel}</strong>
+            </div>
+            <div className="control-actions">
+              <label className="control-action control-action--primary">
+                <span>Upload audio</span>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleFileChange}
+                  className="control-action__input"
+                />
+              </label>
+              <button
+                type="button"
+                className="control-action"
+                onClick={onUseSample}
+              >
+                Use sample
+              </button>
+            </div>
+          </div>
 
-          <div>
-            Sensitivity
+          <div className="control-panel__section">
+            <p className="control-panel__eyebrow">Response</p>
+
+            <label className="control-slider">
+              <span className="control-slider__label">Sensitivity</span>
+              <span className="control-slider__value">
+                {params.sensitivity.toFixed(1)}
+              </span>
+            </label>
             <input
+              className="control-slider__input"
               type="range"
               min="0.5"
               max="2"
               step="0.1"
               value={params.sensitivity}
-              onChange={(e) =>
-                setParams({ ...params, sensitivity: +e.target.value })
-              }
+              onChange={handleParamChange("sensitivity")}
             />
-          </div>
 
-          <div>
-            Flow
+            <label className="control-slider">
+              <span className="control-slider__label">Flow</span>
+              <span className="control-slider__value">{params.flow.toFixed(1)}</span>
+            </label>
             <input
+              className="control-slider__input"
               type="range"
               min="0.5"
               max="2"
               step="0.1"
               value={params.flow}
-              onChange={(e) =>
-                setParams({ ...params, flow: +e.target.value })
-              }
+              onChange={handleParamChange("flow")}
             />
-          </div>
 
-          <div>
-            Particles
+            <label className="control-slider">
+              <span className="control-slider__label">Particles</span>
+              <span className="control-slider__value">
+                {params.particles.toFixed(1)}
+              </span>
+            </label>
             <input
+              className="control-slider__input"
               type="range"
               min="0.5"
               max="2"
               step="0.1"
               value={params.particles}
-              onChange={(e) =>
-                setParams({ ...params, particles: +e.target.value })
-              }
+              onChange={handleParamChange("particles")}
             />
           </div>
-        </div>
+        </aside>
       )}
     </>
   );
