@@ -9,10 +9,10 @@ const attachMediaElementSpy = vi.fn();
 const resumeSpy = vi.fn(async () => {});
 const suspendSpy = vi.fn(async () => {});
 const getFrequencyBandsSpy = vi.fn(() => ({
+  subKick: 120,
   bass: 120,
-  lowMid: 80,
-  mid: 60,
-  high: 40,
+  mids: 60,
+  highs: 40,
 }));
 const disposeEngineSpy = vi.fn();
 

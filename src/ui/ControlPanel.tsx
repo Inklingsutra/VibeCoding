@@ -29,6 +29,11 @@ export function ControlPanel({
   visible,
   toggle,
 }: Props) {
+  const modeSelectId = "visual-mode";
+  const sensitivityId = "sensitivity";
+  const flowId = "flow";
+  const particlesId = "particles";
+
   const modes: { value: VisualMode; label: string; description: string }[] = [
     { value: "nebula", label: "Nebula", description: "Soft bloom and drifting trails" },
     { value: "prism", label: "Prism", description: "Sharper beams and spectral color shifts" },
@@ -54,6 +59,7 @@ export function ControlPanel({
   return (
     <>
       <button
+        type="button"
         onClick={toggle}
         className="control-toggle"
       >
@@ -69,8 +75,9 @@ export function ControlPanel({
               controls
               src={audioSrc}
               className="control-panel__audio"
+              aria-label="Audio playback"
             />
-            <div className="control-source">
+            <div className="control-source" aria-live="polite">
               <span className="control-source__label">Current source</span>
               <strong className="control-source__value">{sourceLabel}</strong>
             </div>
@@ -82,6 +89,7 @@ export function ControlPanel({
                   accept="audio/*"
                   onChange={handleFileChange}
                   className="control-action__input"
+                  aria-label="Upload audio"
                 />
               </label>
               <button
@@ -97,9 +105,10 @@ export function ControlPanel({
           <div className="control-panel__section">
             <p className="control-panel__eyebrow">Response</p>
 
-            <label className="control-mode">
+            <label className="control-mode" htmlFor={modeSelectId}>
               <span className="control-slider__label">Visual mode</span>
               <select
+                id={modeSelectId}
                 className="control-mode__select"
                 value={params.mode}
                 onChange={handleModeChange}
@@ -115,13 +124,15 @@ export function ControlPanel({
               {modes.find((mode) => mode.value === params.mode)?.description}
             </p>
 
-            <label className="control-slider">
+            <label className="control-slider" htmlFor={sensitivityId}>
               <span className="control-slider__label">Sensitivity</span>
               <span className="control-slider__value">
                 {params.sensitivity.toFixed(1)}
               </span>
             </label>
             <input
+              id={sensitivityId}
+              aria-label="Sensitivity"
               className="control-slider__input"
               type="range"
               min="0.5"
@@ -131,11 +142,13 @@ export function ControlPanel({
               onChange={handleParamChange("sensitivity")}
             />
 
-            <label className="control-slider">
+            <label className="control-slider" htmlFor={flowId}>
               <span className="control-slider__label">Flow</span>
               <span className="control-slider__value">{params.flow.toFixed(1)}</span>
             </label>
             <input
+              id={flowId}
+              aria-label="Flow"
               className="control-slider__input"
               type="range"
               min="0.5"
@@ -145,13 +158,15 @@ export function ControlPanel({
               onChange={handleParamChange("flow")}
             />
 
-            <label className="control-slider">
+            <label className="control-slider" htmlFor={particlesId}>
               <span className="control-slider__label">Particles</span>
               <span className="control-slider__value">
                 {params.particles.toFixed(1)}
               </span>
             </label>
             <input
+              id={particlesId}
+              aria-label="Particles"
               className="control-slider__input"
               type="range"
               min="0.5"

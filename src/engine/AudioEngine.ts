@@ -4,12 +4,17 @@ declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
   }
+
+  interface HTMLMediaElement {
+    captureStream?: () => MediaStream;
+    mozCaptureStream?: () => MediaStream;
+  }
 }
 
 export class AudioEngine {
   private context: AudioContext;
   private analyser: AnalyserNode;
-  private source: MediaElementAudioSourceNode | null = null;
+  private source: AudioNode | null = null;
   private dataArray: Uint8Array<ArrayBuffer>;
 
   constructor() {
@@ -35,7 +40,25 @@ export class AudioEngine {
       return;
     }
 
-    this.source = this.context.createMediaElementSource(audioElement);
+    try {
+      this.source = this.context.createMediaElementSource(audioElement);
+    } catch (error) {
+      const captureStream =
+        audioElement.captureStream?.bind(audioElement) ??
+        audioElement.mozCaptureStream?.bind(audioElement);
+
+      if (
+        error instanceof DOMException &&
+        error.name === "InvalidStateError" &&
+        captureStream
+      ) {
+        const stream = captureStream();
+        this.source = this.context.createMediaStreamSource(stream);
+      } else {
+        throw error;
+      }
+    }
+
     this.source.connect(this.analyser);
   }
 
@@ -53,16 +76,23 @@ export class AudioEngine {
 
   getFrequencyBands(): FrequencyBands {
     this.analyser.getByteFrequencyData(this.dataArray);
+    const binWidth = this.context.sampleRate / this.analyser.fftSize;
 
     return {
-      bass: this.getAverage(0, 10),
-      lowMid: this.getAverage(10, 30),
-      mid: this.getAverage(30, 80),
-      high: this.getAverage(80, 256),
+      subKick: this.getAverageForRange(20, 120, binWidth),
+      bass: this.getAverageForRange(120, 300, binWidth),
+      mids: this.getAverageForRange(300, 2000, binWidth),
+      highs: this.getAverageForRange(2000, 10000, binWidth),
     };
   }
 
-  private getAverage(start: number, end: number) {
+  private getAverageForRange(startHz: number, endHz: number, binWidth: number) {
+    const start = Math.max(0, Math.floor(startHz / binWidth));
+    const end = Math.min(
+      this.dataArray.length,
+      Math.max(start + 1, Math.ceil(endHz / binWidth))
+    );
+
     let sum = 0;
     let count = 0;
 
